@@ -11,7 +11,7 @@ $(TARGET): $(OBJECTS) BDFParser.h
 
 check : all
 	$(TARGET)
-	@gcov test.gcda | grep FirstFitAllocator -B2 | grep '%'
+	@gcov test.gcda | grep BDFParser -B2 | grep '%'
 
 .SUFFIXES: .cpp .o
 .cpp.o:
