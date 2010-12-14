@@ -70,11 +70,39 @@ public:
         return true;
     }
 
+    void showBox(int w, int h)
+    {
+        for (int i = 0; i < w + 2; i++) {
+            printf("+");
+        }
+        printf("\n");
+        for (int j = 0; j < h; j++) {
+            printf("+");
+            for (int i = 0; i < w; i++) {
+                printf("=");
+            }
+            printf("+\n");
+        }
+        for (int i = 0; i < w + 2; i++) {
+            printf("+");
+        }
+        printf("\n");
+    }
+
     std::string getFontString(ucs4char ch)
     {
+        const int w = 17;
+        const int h = 25;
+        const int boundingBoxY = -6;
         FontImage font = getFont(ch);
         std::string ret;
+        ret += '\n'; // debug
+        for (int i = 0; i < w + 2; i++) {
+            ret += '+';
+        }
+        ret += '\n';
         for (size_t j = 0; j < font.bits.size(); j++) {
+            ret += '+';
             for (int i = 0; i < font.width; i++) {
                 if ((font.bits[j] >> (font.width - i)) & 0x01) {
                     ret += '*';
@@ -82,8 +110,16 @@ public:
                     ret += ' ';
                 }
             }
+            for (int i = font.width; i < w; i++) {
+                ret += ' ';
+            }
+            ret += '+';
             ret += '\n';
         }
+        for (int i = 0; i < w + 2; i++) {
+            ret += '+';
+        }
+        ret += '\n';
         return ret;
     }
 

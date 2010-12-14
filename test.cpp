@@ -60,6 +60,12 @@ TEST(getFont, AasString) {
  , text.c_str());
 }
 
+TEST(getFont, ShowBox) {
+    BDFParser parser(FONT_PATH);
+    ASSERT_TRUE(parser.parse());
+    parser.showBox(10, 12);
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
