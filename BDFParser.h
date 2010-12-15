@@ -43,6 +43,23 @@ public:
     int height;
     std::vector<uint32_t> bits;
     uint8_t* bits2;
+    uint8_t* getPackedBits()
+    {
+        uint8_t* ret = new uint8_t[(width * height + 7) / 8];
+        memset(ret, 0, (width * height + 7) / 8);
+        int offset = (width + 7) / 8 * 8 - width - 1;
+        for (size_t j = 0; j < bits.size(); j++) {
+            for (int i = 0; i < width; i++) {
+                if ((bits[j] >> (width - i + offset)) & 0x01) {
+                    int index = i + j * width;
+                    const int i = index & (8 - 1);
+                    const int j = index / 8;
+                    ret[j] |= (1 << i);
+                }
+            }
+        }
+        return ret;
+    }
 };
 
 
@@ -83,9 +100,10 @@ public:
         std::string ret;
         int pos = 0;
         int bit = 1;
+        uint8_t* bits = font.getPackedBits();
         for (size_t j = 0; j < font.bits.size(); j++) {
             for (int k = 0; k < font.width; k++) {
-                if ((font.bits2[pos] & bit) != 0) {
+                if ((bits[pos] & bit) != 0) {
                     ret += '*';
                 } else {
                     ret += '-';
@@ -98,6 +116,7 @@ public:
             }
             ret += '\n';
         }
+        delete[] bits;
         return ret;
     }
 
