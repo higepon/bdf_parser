@@ -42,8 +42,14 @@ public:
     int width;
     int height;
     std::vector<uint32_t> bits;
+    uint8_t* bits2;
 };
 
+
+// N.B.
+//   Current implementation doesn't care about Font bounding box.
+//   Since this works well for fixed width fonts.
+//
 class BDFParser {
     typedef std::map<ucs4char, FontImage> FontImages;
 
@@ -70,16 +76,24 @@ public:
         return true;
     }
 
+
     std::string getFontString(ucs4char ch)
     {
         FontImage font = getFont(ch);
         std::string ret;
+        int pos = 0;
+        int bit = 1;
         for (size_t j = 0; j < font.bits.size(); j++) {
-            for (int i = 0; i < font.width; i++) {
-                if ((font.bits[j] >> (font.width - i)) & 0x01) {
+            for (int k = 0; k < font.width; k++) {
+                if ((font.bits2[pos] & bit) != 0) {
                     ret += '*';
                 } else {
-                    ret += ' ';
+                    ret += '-';
+                }
+                bit <<= 1;
+                if (bit == 256) {
+                    pos++;
+                    bit = 1;
                 }
             }
             ret += '\n';
@@ -99,6 +113,7 @@ private:
         const int BUFFER_SIZE = 512;
         char buf[BUFFER_SIZE];
 
+        std::vector<uint32_t> bitsList;
         for (;;) {
             if (NULL == fgets(buf, BUFFER_SIZE, fp)) {
                 return false;
@@ -112,6 +127,23 @@ private:
                 return false;
             }
             fontImage.bits.push_back(bits);
+            bitsList.push_back(bits);
+        }
+
+        fontImage.bits2 = new uint8_t[(fontImage.width * fontImage.height + 7) / 8];
+        memset(fontImage.bits2, 0, (fontImage.width * fontImage.height + 7) / 8);
+        int numBits = (fontImage.width * fontImage.height + 7) / 8 * 8;
+        int offset = (fontImage.width + 7) / 8 * 8 - fontImage.width - 1;
+        for (size_t j = 0; j < bitsList.size(); j++) {
+            for (int i = 0; i < fontImage.width; i++) {
+                if ((bitsList[j] >> (fontImage.width - i + offset)) & 0x01) {
+                    int index = i + j * fontImage.width;
+                    const int i = index & (8 - 1);
+                    const int j = index / 8;
+                    fontImage.bits2[j] |= (1 << i);
+                } else {
+                }
+            }
         }
         return true;
     }
@@ -124,39 +156,44 @@ private:
             // EOF
             return true;
         }
+        fontImage.height = fontHight_;
         std::string line(buf);
         if (line.find("STARTCHAR ") != 0) {
-            printf("%s %s:%d\n", __func__, __FILE__, __LINE__);fflush(stdout);// debug
             return false;
         }
 
-        if (sscanf(line.c_str(), "STARTCHAR %x ", &(fontImage.ch)) != 1) {
-            printf("%s %s:%d\n", __func__, __FILE__, __LINE__);fflush(stdout);// debug
+        if (NULL == fgets(buf, BUFFER_SIZE, fp)) {
+            // EOF
+            return true;
+        }
+        line = buf;
+        if (line.find("ENCODING ") != 0) {
+            return false;
+        }
+
+        if (sscanf(line.c_str(), "ENCODING %d ", &(fontImage.ch)) != 1) {
             return false;
         }
 
         for (;;) {
             if (NULL == fgets(buf, BUFFER_SIZE, fp)) {
-                printf("%s %s:%d\n", __func__, __FILE__, __LINE__);fflush(stdout);// debug
                 return false;
             }
             std::string line(buf);
             if (line.find("DWIDTH ") == 0) {
                 if (sscanf(line.c_str(), "DWIDTH %d ", &(fontImage.width)) != 1) {
-                    printf("%s %s:%d\n", __func__, __FILE__, __LINE__);fflush(stdout);// debug
                     return false;
                 }
             }
             if (line.find("BITMAP") == 0) {
+                assert(fontImage.width != -1);
                 if (!readBitmap(fp, fontImage)) {
-                    printf("%s %s:%d\n", __func__, __FILE__, __LINE__);fflush(stdout);// debug
                     return false;
                 } else {
                     break;
                 }
             }
         }
-        fontImage.height = fontHight_;
         return true;
     }
     bool readAllFonts(FILE* fp)
@@ -164,7 +201,6 @@ private:
         for (int i = 0; i < numChars_; i++) {
             FontImage fontImage;
             if (!readOneFont(fp, fontImage)) {
-                printf("%s %s:%d\n", __func__, __FILE__, __LINE__);fflush(stdout);// debug
                 return false;
             }
             fontImages_[fontImage.ch] = fontImage;
