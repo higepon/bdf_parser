@@ -42,7 +42,6 @@ public:
     int width;
     int height;
     std::vector<uint32_t> bits;
-    uint8_t* bits2;
     uint8_t* getPackedBits()
     {
         uint8_t* ret = new uint8_t[(width * height + 7) / 8];
@@ -147,22 +146,6 @@ private:
             }
             fontImage.bits.push_back(bits);
             bitsList.push_back(bits);
-        }
-
-        fontImage.bits2 = new uint8_t[(fontImage.width * fontImage.height + 7) / 8];
-        memset(fontImage.bits2, 0, (fontImage.width * fontImage.height + 7) / 8);
-        int numBits = (fontImage.width * fontImage.height + 7) / 8 * 8;
-        int offset = (fontImage.width + 7) / 8 * 8 - fontImage.width - 1;
-        for (size_t j = 0; j < bitsList.size(); j++) {
-            for (int i = 0; i < fontImage.width; i++) {
-                if ((bitsList[j] >> (fontImage.width - i + offset)) & 0x01) {
-                    int index = i + j * fontImage.width;
-                    const int i = index & (8 - 1);
-                    const int j = index / 8;
-                    fontImage.bits2[j] |= (1 << i);
-                } else {
-                }
-            }
         }
         return true;
     }
