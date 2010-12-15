@@ -42,7 +42,7 @@ TEST(getFont, A) {
 TEST(getFont, AasString) {
     BDFParser parser(FONT_PATH);
     ASSERT_TRUE(parser.parse());
-    std::string text = parser.getFontString(L'A');
+    std::string text = parser.getFontString(L'あ');
     EXPECT_STREQ(
 "     **  \n"
 "     *** \n"
