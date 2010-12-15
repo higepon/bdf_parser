@@ -44,9 +44,10 @@ public:
     std::vector<uint32_t> bits;
     uint8_t* getPackedBits()
     {
-        uint8_t* ret = new uint8_t[(width * height + 7) / 8];
-        memset(ret, 0, (width * height + 7) / 8);
-        int offset = (width + 7) / 8 * 8 - width - 1;
+        uint32_t packedSize = (width * height + 7) / 8;
+        uint8_t* ret = new uint8_t[packedSize];
+        memset(ret, 0, packedSize);
+        int offset = packedSize * 8 - width - 1;
         for (size_t j = 0; j < bits.size(); j++) {
             for (int i = 0; i < width; i++) {
                 if ((bits[j] >> (width - i + offset)) & 0x01) {
