@@ -47,13 +47,15 @@ public:
         uint32_t packedSize = (width * height + 7) / 8;
         uint8_t* ret = new uint8_t[packedSize];
         memset(ret, 0, packedSize);
-        int offset = packedSize * 8 - width - 1;
-        for (size_t j = 0; j < bits.size(); j++) {
+        int widthSizeInBits = (width + 7) / 8 * 8;
+        int offset = widthSizeInBits - width - 1;
+
+        for (int j = 0; j < height; j++) {
             for (int i = 0; i < width; i++) {
                 if ((bits[j] >> (width - i + offset)) & 0x01) {
                     int index = i + j * width;
-                    const int i = index & (8 - 1);
-                    const int j = index / 8;
+                    int i = index & (8 - 1);
+                    int j = index / 8;
                     ret[j] |= (1 << i);
                 }
             }
@@ -72,7 +74,6 @@ class BDFParser {
 
 public:
     BDFParser(const std::string& path) : path_(path),
-                                         fontHight_(-1),
                                          numChars_(-1)
         {}
 
@@ -93,7 +94,6 @@ public:
         return true;
     }
 
-
     std::string getFontString(ucs4char ch)
     {
         FontImage font = getFont(ch);
@@ -101,7 +101,7 @@ public:
         int pos = 0;
         int bit = 1;
         uint8_t* bits = font.getPackedBits();
-        for (size_t j = 0; j < font.bits.size(); j++) {
+        for (int j = 0; j < font.height; j++) {
             for (int k = 0; k < font.width; k++) {
                 if ((bits[pos] & bit) != 0) {
                     ret += '*';
@@ -132,7 +132,6 @@ private:
         const int BUFFER_SIZE = 512;
         char buf[BUFFER_SIZE];
 
-        std::vector<uint32_t> bitsList;
         for (;;) {
             if (NULL == fgets(buf, BUFFER_SIZE, fp)) {
                 return false;
@@ -146,8 +145,8 @@ private:
                 return false;
             }
             fontImage.bits.push_back(bits);
-            bitsList.push_back(bits);
         }
+        fontImage.height = fontImage.bits.size();
         return true;
     }
 
@@ -159,7 +158,6 @@ private:
             // EOF
             return true;
         }
-        fontImage.height = fontHight_;
         std::string line(buf);
         if (line.find("STARTCHAR ") != 0) {
             return false;
@@ -219,24 +217,18 @@ private:
                 return false;
             }
             std::string line(buf);
-            if (line.find("PIXEL_SIZE ") == 0) {
-                if (sscanf(line.c_str(), "PIXEL_SIZE %d ", &fontHight_) != 1) {
-                    return false;
-                }
-            }
             if (line.find("CHARS ") == 0) {
                 if (sscanf(line.c_str(), "CHARS %d ", &numChars_) != 1) {
                     return false;
                 }
             }
-            if (fontHight_ != -1 && numChars_ != -1) {
+            if (numChars_ != -1) {
                 return true;
             }
         }
         return false;
     }
     std::string path_;
-    int fontHight_;
     int numChars_;
     FontImages fontImages_;
 };
